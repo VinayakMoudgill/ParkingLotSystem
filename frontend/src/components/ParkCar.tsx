@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CarFront } from 'lucide-react';
+import { COLOR_OPTIONS } from '../constants/colors';
 
 interface Props {
   isInitialized: boolean;
@@ -31,13 +32,20 @@ export default function ParkCar({ isInitialized, onPark }: Props) {
           disabled={!isInitialized}
         />
         <label>Car Color</label>
-        <input
-          type="text"
-          placeholder="e.g. white"
+        <select
           value={color}
           onChange={(e) => setColor(e.target.value)}
           disabled={!isInitialized}
-        />
+        >
+          <option value="" disabled>
+            Select a color
+          </option>
+          {COLOR_OPTIONS.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <button type="submit" disabled={!isInitialized}>
           Park Car
         </button>

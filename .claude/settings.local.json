@@ -6,7 +6,11 @@
       "PowerShell(Set-Location \"C:\\\\Users\\\\asus\\\\Desktop\\\\parking-lot-system\"; $env:NODE_ENV=\"production\"; node dist/main.js)",
       "PowerShell(Get-Process *)",
       "PowerShell(try { $f = Invoke-WebRequest -Uri \"http://localhost:5173/\" -UseBasicParsing; Write-Host \"Frontend: HTTP $\\($f.StatusCode\\) — DotField live\" } catch { Write-Host \"Frontend ERR: $\\($_.Exception.Message\\)\" })",
-      "PowerShell(npm *)"
+      "PowerShell(npm *)",
+      "PowerShell($g = \\(Get-Command gemini -ErrorAction SilentlyContinue\\); if \\($g\\) { \"gemini CLI: $\\($g.Source\\)\" } else { \"gemini CLI: NOT FOUND\" }; \"GEMINI_API_KEY set: $\\([bool]$env:GEMINI_API_KEY\\)\"; \"GOOGLE_API_KEY set: $\\([bool]$env:GOOGLE_API_KEY\\)\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"exit: $LASTEXITCODE\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

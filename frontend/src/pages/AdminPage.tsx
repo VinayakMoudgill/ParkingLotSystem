@@ -17,7 +17,7 @@ import { useAuth } from '../auth/AuthContext';
 import DotField from '../components/DotField';
 
 export default function AdminPage() {
-  const { username, isSuperAdmin, isLoggedIn, login, logout } = useAuth();
+  const { username, isSuperAdmin, isLoggedIn, login, setRole, logout } = useAuth();
   const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -55,6 +55,18 @@ export default function AdminPage() {
   useEffect(() => {
     if (isLoggedIn) loadAdmins();
   }, [isLoggedIn, loadAdmins]);
+
+  // Reconcile the role from the authoritative source right after login so the
+  // super-admin tools appear immediately — no need to log out and back in.
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    authApi
+      .me()
+      .then((res) => setRole(res.data.isSuperAdmin))
+      .catch(() => {
+        /* token invalid/expired — leave current state as-is */
+      });
+  }, [isLoggedIn, setRole]);
 
   // ─── Bootstrap first admin OR login ────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Car as CarIcon, ShieldCheck, LogOut, Lock } from 'lucide-react';
+import { ShieldCheck, LogOut, Lock, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/parking';
 import { useAuth } from '../auth/AuthContext';
@@ -11,6 +11,7 @@ import ClearSlot from '../components/ClearSlot';
 import ParkingGrid from '../components/ParkingGrid';
 import SearchPanel from '../components/SearchPanel';
 import DotField from '../components/DotField';
+import Logo from '../components/Logo';
 
 interface OccupiedSlot {
   slot_no: number;
@@ -50,7 +51,7 @@ const fadeUp = {
 };
 
 export default function ParkingPage() {
-  const { isLoggedIn, username, logout } = useAuth();
+  const { isLoggedIn, username, isSuperAdmin, logout } = useAuth();
   const [totalSlots, setTotalSlots] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
@@ -162,7 +163,7 @@ export default function ParkingPage() {
             whileHover={{ rotate: -8, scale: 1.08 }}
             transition={{ type: 'spring', stiffness: 300 }}
           >
-            <CarIcon size={24} strokeWidth={2.5} />
+            <Logo size={26} />
           </motion.div>
           <div>
             <h1>ParkFlow</h1>
@@ -198,6 +199,9 @@ export default function ParkingPage() {
           {isLoggedIn ? (
             <>
               <span className="manage-chip"><ShieldCheck size={14} /> {username}</span>
+              {isSuperAdmin && (
+                <Link to="/admin" className="admin-link"><Settings size={16} /> User Settings</Link>
+              )}
               <button className="logout-btn" onClick={logout}><LogOut size={15} /> Logout</button>
             </>
           ) : (

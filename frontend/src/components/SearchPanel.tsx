@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { api } from '../api/parking';
+import { COLOR_OPTIONS } from '../constants/colors';
 
 interface Props {
   isInitialized: boolean;
@@ -68,13 +69,20 @@ export default function SearchPanel({ isInitialized }: Props) {
       <form onSubmit={searchByColor} style={{ marginBottom: '1rem' }}>
         <label>Search by Color</label>
         <div className="input-row">
-          <input
-            type="text"
-            placeholder="e.g. white"
+          <select
             value={colorInput}
             onChange={(e) => setColorInput(e.target.value)}
             disabled={!isInitialized}
-          />
+          >
+            <option value="" disabled>
+              Select a color
+            </option>
+            {COLOR_OPTIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <button type="submit" disabled={!isInitialized}>Go</button>
         </div>
       </form>

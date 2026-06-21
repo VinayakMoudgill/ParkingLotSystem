@@ -7,6 +7,8 @@ interface AuthState {
   isSuperAdmin: boolean;
   isLoggedIn: boolean;
   login: (token: string, username: string, isSuperAdmin: boolean) => void;
+  /** Reconcile the role from an authoritative source (e.g. GET /auth/me). */
+  setRole: (isSuperAdmin: boolean) => void;
   logout: () => void;
 }
 
@@ -31,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsSuperAdmin(newIsSuper);
   };
 
+  const setRole = (newIsSuper: boolean) => {
+    localStorage.setItem(SUPER_KEY, String(newIsSuper));
+    setIsSuperAdmin(newIsSuper);
+  };
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -42,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, username, isSuperAdmin, isLoggedIn: !!token, login, logout }}
+      value={{ token, username, isSuperAdmin, isLoggedIn: !!token, login, setRole, logout }}
     >
       {children}
     </AuthContext.Provider>
