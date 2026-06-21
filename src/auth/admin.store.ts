@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 export interface Admin {
   id: string;
@@ -32,6 +34,28 @@ export class AdminStore {
 
   constructor() {
     this.load();
+    this.seedDefaultAdmin();
+  }
+
+  /**
+   * If no admins exist yet (fresh deployment), automatically create the
+   * default Super Admin so the interviewer can log in straight away.
+   * Credentials: username = "Vinayak", password = "123456"
+   */
+  private seedDefaultAdmin(): void {
+    if (this.admins.length > 0) return;
+    // bcrypt hash of "123456" with salt rounds = 10
+    // Pre-computed to avoid async in constructor; safe to store.
+    const passwordHash = bcrypt.hashSync('123456', 10);
+    const superAdmin: Admin = {
+      id: randomUUID(),
+      username: 'Vinayak',
+      passwordHash,
+      createdAt: new Date().toISOString(),
+      isSuperAdmin: true,
+    };
+    this.admins.push(superAdmin);
+    this.persist();
   }
 
   private load(): void {

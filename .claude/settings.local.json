@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item *)",
+      "PowerShell(npm run *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\asus\\\\Desktop\\\\parking-lot-system\"; $env:NODE_ENV=\"production\"; node dist/main.js)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(try { $f = Invoke-WebRequest -Uri \"http://localhost:5173/\" -UseBasicParsing; Write-Host \"Frontend: HTTP $\\($f.StatusCode\\) — DotField live\" } catch { Write-Host \"Frontend ERR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(npm *)"
+    ]
+  }
+}

@@ -5,13 +5,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allowed frontend origins — comma-separated list from env.
-  // Local dev defaults to the Vite dev server; in production set CORS_ORIGINS
-  // to your GitHub Pages URL, e.g. https://yourname.github.io
-  const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim());
+  // Allow any origin in production (e.g. Vercel frontend → Railway backend).
+  // Restrict to specific origins in a real production app via CORS_ORIGINS env.
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+    : true; // true = allow all origins
   app.enableCors({ origin: corsOrigins });
+
 
   app.useGlobalPipes(
     new ValidationPipe({
