@@ -4,7 +4,7 @@ import axios from 'axios';
 // Local dev falls back to localhost; in production (GitHub Pages) this is set
 // via the VITE_API_BASE_URL build-time environment variable.
 const envBase = import.meta.env.VITE_API_BASE_URL?.trim();
-export const BASE = envBase || 'http://localhost:3000';
+export const BASE = envBase || 'https://parkinglotsystem-production.up.railway.app';
 
 export const TOKEN_KEY = 'parkflow_token';
 
