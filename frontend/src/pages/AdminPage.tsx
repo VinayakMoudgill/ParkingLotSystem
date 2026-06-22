@@ -13,6 +13,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { authApi, AdminRow } from '../api/auth';
+import { SESSION_EXPIRED_KEY } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import DotField from '../components/DotField';
 
@@ -28,10 +29,14 @@ export default function AdminPage() {
   const [newPass, setNewPass] = useState('');
   const [admins, setAdmins] = useState<AdminRow[]>([]);
 
-  // Set when the API client bounced us here after a 401 (expired/invalid token).
-  const sessionExpired =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('expired') === '1';
+  // True only when the API client flagged a genuine 401 expiry. Read once on
+  // mount, then cleared so a plain refresh never re-shows the notice.
+  const [sessionExpired] = useState(
+    () => sessionStorage.getItem(SESSION_EXPIRED_KEY) === '1',
+  );
+  useEffect(() => {
+    if (sessionExpired) sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+  }, [sessionExpired]);
 
   const errOf = (err: unknown, fallback: string) => {
     const m = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data

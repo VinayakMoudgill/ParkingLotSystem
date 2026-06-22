@@ -27,6 +27,11 @@ client.interceptors.request.use((config) => {
 const USER_KEY = 'parkflow_user';
 const SUPER_KEY = 'parkflow_super';
 
+// One-shot flag (NOT a URL param — the app uses HashRouter) set only when a live
+// session is rejected, so the login screen can explain why. The login page reads
+// it once and clears it, so a plain refresh never re-shows the notice.
+export const SESSION_EXPIRED_KEY = 'parkflow_session_expired';
+
 // If the admin token is missing/expired/invalid, the backend replies 401. Rather
 // than surfacing a cryptic "invalid token" error, clear the dead session and
 // bounce the user to the login screen so they can simply sign in again.
@@ -39,11 +44,13 @@ client.interceptors.response.use(
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       localStorage.removeItem(SUPER_KEY);
-      if (!window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/admin?expired=1';
-      } else {
-        window.location.reload();
+      // Mark this as a genuine expiry, route to the admin login, and reload so
+      // AuthProvider re-reads the now-cleared token (logged-out state).
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, '1');
+      if (!window.location.hash.startsWith('#/admin')) {
+        window.location.hash = '/admin';
       }
+      window.location.reload();
     }
     return Promise.reject(error);
   },
