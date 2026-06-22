@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
-import confetti from 'canvas-confetti';
-import { ShieldCheck, LogOut, Lock, Settings } from 'lucide-react';
+import { ShieldCheck, LogOut, Lock, Settings, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/parking';
 import { useAuth } from '../auth/AuthContext';
@@ -20,14 +19,41 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-// A celebratory confetti burst — fired when a car successfully parks
-function celebrate() {
-  const colors = ['#6366f1', '#06b6d4', '#3b82f6', '#22c55e', '#a5b4fc'];
-  confetti({ particleCount: 70, spread: 70, origin: { y: 0.7 }, colors });
-  setTimeout(() => {
-    confetti({ particleCount: 40, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors });
-    confetti({ particleCount: 40, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors });
-  }, 120);
+// A clean, on-brand "parked" confirmation: a check badge springs in behind a
+// soft expanding ring, then fades. Calmer than confetti — fits a parking app.
+function ParkSuccess() {
+  return (
+    <motion.div
+      className="park-success"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.span
+        className="park-success-ring"
+        initial={{ scale: 0.4, opacity: 0.55 }}
+        animate={{ scale: 2.2, opacity: 0 }}
+        transition={{ duration: 0.9, ease: 'easeOut' }}
+      />
+      <motion.div
+        className="park-success-badge"
+        initial={{ scale: 0, rotate: -12 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 16 }}
+      >
+        <Check size={34} strokeWidth={3} />
+      </motion.div>
+      <motion.div
+        className="park-success-label"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+      >
+        Parked
+      </motion.div>
+    </motion.div>
+  );
 }
 
 // A number that smoothly counts up/down when its value changes
@@ -52,10 +78,18 @@ export default function ParkingPage() {
   const [floors, setFloors] = useState<FloorView[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  // Holds a unique id while the "parked" success pulse is on screen.
+  const [parkPulse, setParkPulse] = useState<number | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error') => {
     setToast({ id: Date.now(), text, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const playParkPulse = () => {
+    const id = Date.now();
+    setParkPulse(id);
+    setTimeout(() => setParkPulse((cur) => (cur === id ? null : cur)), 1300);
   };
 
   // Single source of truth for the grid + stats: floors with per-slot occupancy.
@@ -175,7 +209,7 @@ export default function ParkingPage() {
     try {
       const res = await api.parkCar(regNo, color, floorId);
       await refreshLayout();
-      celebrate();
+      playParkPulse();
       showToast(
         `${regNo} parked on ${res.data.floor_name}, slot #${res.data.allocated_slot_number}`,
         'success',
@@ -209,6 +243,8 @@ export default function ParkingPage() {
       <div className="bg-orb orb-1" />
       <div className="bg-orb orb-2" />
       <div className="bg-orb orb-3" />
+
+      <AnimatePresence>{parkPulse && <ParkSuccess key={parkPulse} />}</AnimatePresence>
 
       <motion.header
         className="app-header"
