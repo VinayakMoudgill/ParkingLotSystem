@@ -45,10 +45,9 @@ export default function InitializeLot({ isInitialized, onInitialize }: Props) {
           <button type="submit">Create Parking Lot</button>
         </form>
       ) : (
-        <p className="restricted-note" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-          Your parking lot is ready. Use the <strong>Floors</strong> panel below to add
-          upper floors or basements, rename a floor, or change its number of slots.
+        <p className="restricted-note" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+          <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+          Parking lot configured. Manage floors below.
         </p>
       )}
     </div>
