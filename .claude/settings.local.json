@@ -10,7 +10,16 @@
       "PowerShell($g = \\(Get-Command gemini -ErrorAction SilentlyContinue\\); if \\($g\\) { \"gemini CLI: $\\($g.Source\\)\" } else { \"gemini CLI: NOT FOUND\" }; \"GEMINI_API_KEY set: $\\([bool]$env:GEMINI_API_KEY\\)\"; \"GOOGLE_API_KEY set: $\\([bool]$env:GOOGLE_API_KEY\\)\")",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 20; \"exit: $LASTEXITCODE\")",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "PowerShell(npx jest src/parking 2>&1 | Select-Object -Last 40)",
+      "PowerShell(npx jest src/parking 2>&1 | Select-Object -Last 12)",
+      "PowerShell(cd frontend; npx tsc --noEmit 2>&1 | Select-Object -First 40; \"tsc exit: $LASTEXITCODE\")",
+      "PowerShell(npx jest 2>&1 | Select-Object -Last 8)",
+      "PowerShell(cd C:\\\\Users\\\\asus\\\\Desktop\\\\parking-lot-system\\\\frontend; npx tsc --noEmit 2>&1 | Select-Object -First 30; \"tsc exit: $LASTEXITCODE\")",
+      "PowerShell(cd C:\\\\Users\\\\asus\\\\Desktop\\\\parking-lot-system\\\\frontend; npx tsc --noEmit 2>&1 | Select-Object -First 20; \"tsc exit: $LASTEXITCODE\")",
+      "PowerShell(cd C:\\\\Users\\\\asus\\\\Desktop\\\\parking-lot-system\\\\frontend; npx tsc --noEmit 2>&1 | Select-Object -First 40; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(git check-ignore *)"
     ]
   }
 }

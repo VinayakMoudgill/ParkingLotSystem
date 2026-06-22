@@ -9,6 +9,7 @@ interface Props {
 }
 
 interface ColorRow {
+  floor: string;
   slot: number;
   reg: string;
 }
@@ -21,6 +22,7 @@ interface ColorResult {
 interface RegResult {
   reg: string;
   slot: number | null;
+  floor: string | null;
 }
 
 export default function SearchPanel({ isInitialized }: Props) {
@@ -40,9 +42,13 @@ export default function SearchPanel({ isInitialized }: Props) {
         api.getSlotsByColor(color),
       ]);
       const regs: string[] = regsRes.data;
-      const slots: number[] = slotsRes.data;
-      // Both arrays are sorted by slot number, so index i pairs them
-      const rows: ColorRow[] = slots.map((slot, i) => ({ slot, reg: regs[i] ?? '—' }));
+      const slots: Array<{ slot_number: number; floor_name: string }> = slotsRes.data;
+      // Both lists are built in the same order, so index i pairs them
+      const rows: ColorRow[] = slots.map((s, i) => ({
+        floor: s.floor_name,
+        slot: s.slot_number,
+        reg: regs[i] ?? '—',
+      }));
       setColorResult({ color, rows });
     } catch {
       setColorResult({ color, rows: [] });
@@ -56,9 +62,9 @@ export default function SearchPanel({ isInitialized }: Props) {
     setColorResult(null);
     try {
       const res = await api.getSlotByRegistration(reg);
-      setRegResult({ reg, slot: res.data.slot_number });
+      setRegResult({ reg, slot: res.data.slot_number, floor: res.data.floor_name });
     } catch {
-      setRegResult({ reg, slot: null });
+      setRegResult({ reg, slot: null, floor: null });
     }
   };
 
@@ -119,13 +125,15 @@ export default function SearchPanel({ isInitialized }: Props) {
               <table className="result-table">
                 <thead>
                   <tr>
+                    <th>Floor</th>
                     <th>Slot No.</th>
                     <th>Registration No.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {colorResult.rows.map((row) => (
-                    <tr key={row.slot}>
+                    <tr key={`${row.floor}-${row.slot}`}>
+                      <td>{row.floor}</td>
                       <td className="cell-slot">#{row.slot}</td>
                       <td>{row.reg}</td>
                     </tr>
@@ -152,12 +160,14 @@ export default function SearchPanel({ isInitialized }: Props) {
                 <thead>
                   <tr>
                     <th>Registration No.</th>
+                    <th>Floor</th>
                     <th>Slot No.</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>{regResult.reg}</td>
+                    <td>{regResult.floor}</td>
                     <td className="cell-slot">#{regResult.slot}</td>
                   </tr>
                 </tbody>

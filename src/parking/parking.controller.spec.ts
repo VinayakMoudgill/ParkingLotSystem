@@ -36,13 +36,16 @@ describe('ParkingController', () => {
     controller.initializeParkingLot({ no_of_slot: 6 });
     expect(
       controller.parkCar({ car_reg_no: 'KA-01-AB-1111', car_color: 'white' }),
-    ).toEqual({ allocated_slot_number: 1 });
+    ).toMatchObject({ allocated_slot_number: 1 });
   });
 
-  it('POST /clear — frees a slot by slot number', () => {
+  it('POST /clear — frees a slot by floor + slot number', () => {
     controller.initializeParkingLot({ no_of_slot: 6 });
+    const floorId = controller.getLayout().floors[0].id;
     controller.parkCar({ car_reg_no: 'KA-01-AB-1111', car_color: 'white' });
-    expect(controller.clearSlot({ slot_number: 1 })).toEqual({ freed_slot_number: 1 });
+    expect(controller.clearSlot({ floor_id: floorId, slot_number: 1 })).toMatchObject({
+      freed_slot_number: 1,
+    });
   });
 
   it('POST /clear — frees a slot by registration number', () => {
@@ -50,7 +53,7 @@ describe('ParkingController', () => {
     controller.parkCar({ car_reg_no: 'KA-01-AB-1111', car_color: 'white' });
     expect(
       controller.clearSlot({ car_registration_no: 'KA-01-AB-1111' }),
-    ).toEqual({ freed_slot_number: 1 });
+    ).toMatchObject({ freed_slot_number: 1 });
   });
 
   it('GET /status — returns all occupied slots', () => {
@@ -71,12 +74,14 @@ describe('ParkingController', () => {
   it('GET /slot/:registration_number — returns slot for a car', () => {
     controller.initializeParkingLot({ no_of_slot: 3 });
     controller.parkCar({ car_reg_no: 'KA-01-AB-1111', car_color: 'white' });
-    expect(controller.getSlotByRegistration('KA-01-AB-1111')).toEqual({ slot_number: 1 });
+    expect(controller.getSlotByRegistration('KA-01-AB-1111')).toMatchObject({ slot_number: 1 });
   });
 
-  it('GET /slot_numbers/:color — returns slot numbers by color', () => {
+  it('GET /slot_numbers/:color — returns slot locations by color', () => {
     controller.initializeParkingLot({ no_of_slot: 3 });
     controller.parkCar({ car_reg_no: 'KA-01-AB-1111', car_color: 'red' });
-    expect(controller.getSlotsByColor('red')).toContain(1);
+    expect(controller.getSlotsByColor('red')).toEqual([
+      expect.objectContaining({ slot_number: 1 }),
+    ]);
   });
 });

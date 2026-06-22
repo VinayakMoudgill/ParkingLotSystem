@@ -1,25 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
+import type { FloorView } from './FloorManager';
 
 interface Props {
   isInitialized: boolean;
-  onClear: (slotNumber?: number, regNo?: string) => void;
+  floors: FloorView[];
+  onClear: (floorId?: string, slotNumber?: number, regNo?: string) => void;
 }
 
 type Mode = 'slot' | 'reg';
 
-export default function ClearSlot({ isInitialized, onClear }: Props) {
+export default function ClearSlot({ isInitialized, floors, onClear }: Props) {
   const [mode, setMode] = useState<Mode>('slot');
+  const [floorId, setFloorId] = useState('');
   const [slotNumber, setSlotNumber] = useState('');
   const [regNo, setRegNo] = useState('');
 
+  // Keep a valid floor selected — prefer one that actually has a car parked.
+  useEffect(() => {
+    if (floorId && floors.some((f) => f.id === floorId)) return;
+    const firstOccupied = floors.find((f) => f.occupied > 0);
+    setFloorId(firstOccupied ? firstOccupied.id : floors[0]?.id ?? '');
+  }, [floors, floorId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'slot' && slotNumber) {
-      onClear(Number(slotNumber), undefined);
+    if (mode === 'slot' && floorId && slotNumber) {
+      onClear(floorId, Number(slotNumber), undefined);
       setSlotNumber('');
     } else if (mode === 'reg' && regNo.trim()) {
-      onClear(undefined, regNo.trim());
+      onClear(undefined, undefined, regNo.trim());
       setRegNo('');
     }
   };
@@ -34,7 +44,7 @@ export default function ClearSlot({ isInitialized, onClear }: Props) {
           className={mode === 'slot' ? 'active' : ''}
           onClick={() => setMode('slot')}
         >
-          By Slot No.
+          By Floor + Slot
         </button>
         <button
           type="button"
@@ -48,7 +58,20 @@ export default function ClearSlot({ isInitialized, onClear }: Props) {
       <form onSubmit={handleSubmit}>
         {mode === 'slot' ? (
           <>
-            <label>Slot Number</label>
+            <label>Floor</label>
+            <select
+              value={floorId}
+              onChange={(e) => setFloorId(e.target.value)}
+              disabled={!isInitialized || floors.length === 0}
+            >
+              {floors.length === 0 && <option value="">No floors yet</option>}
+              {floors.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name} — {f.occupied}/{f.total} occupied
+                </option>
+              ))}
+            </select>
+            <label>Slot Number (on this floor)</label>
             <input
               type="number"
               min="1"

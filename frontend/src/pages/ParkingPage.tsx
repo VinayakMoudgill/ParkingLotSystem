@@ -9,15 +9,10 @@ import InitializeLot from '../components/InitializeLot';
 import ParkCar from '../components/ParkCar';
 import ClearSlot from '../components/ClearSlot';
 import ParkingGrid from '../components/ParkingGrid';
+import FloorManager, { FloorView } from '../components/FloorManager';
 import SearchPanel from '../components/SearchPanel';
 import DotField from '../components/DotField';
 import Logo from '../components/Logo';
-
-interface OccupiedSlot {
-  slot_no: number;
-  registration_no: string;
-  color: string;
-}
 
 interface Toast {
   id: number;
@@ -53,8 +48,9 @@ const fadeUp = {
 export default function ParkingPage() {
   const { isLoggedIn, username, isSuperAdmin, logout } = useAuth();
   const [totalSlots, setTotalSlots] = useState(0);
+  const [occupiedCount, setOccupiedCount] = useState(0);
+  const [floors, setFloors] = useState<FloorView[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error') => {
@@ -62,87 +58,150 @@ export default function ParkingPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const refreshStatus = useCallback(async () => {
+  // Single source of truth for the grid + stats: floors with per-slot occupancy.
+  const refreshLayout = useCallback(async () => {
     try {
-      const res = await api.getStatus();
-      setOccupiedSlots(res.data);
+      const res = await api.getLayout();
+      setFloors(res.data.floors);
+      setTotalSlots(res.data.total_slot);
+      setOccupiedCount(res.data.occupied);
+      setIsInitialized(res.data.floors.length > 0);
     } catch {
-      // lot not yet initialized — ignore silently
+      // backend unreachable — leave as-is
     }
   }, []);
 
   // On first load, restore lot state from the backend (survives navigation/refresh)
   useEffect(() => {
-    api
-      .getLotInfo()
-      .then((res) => {
-        if (res.data.initialized) {
-          setTotalSlots(res.data.total_slot);
-          setIsInitialized(true);
-          refreshStatus();
-        }
-      })
-      .catch(() => {
-        /* backend unreachable — leave uninitialized */
-      });
-  }, [refreshStatus]);
+    refreshLayout();
+  }, [refreshLayout]);
 
   useEffect(() => {
     if (!isInitialized) return;
-    const interval = setInterval(refreshStatus, 5000);
+    const interval = setInterval(refreshLayout, 5000);
     return () => clearInterval(interval);
-  }, [isInitialized, refreshStatus]);
+  }, [isInitialized, refreshLayout]);
 
   const errMsg = (err: unknown, fallback: string) =>
     (err as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message
       ? String((err as any).response.data.message)
       : fallback;
 
-  const handleInitialize = async (noOfSlot: number) => {
+  const handleInitialize = async (noOfSlot: number, name: string) => {
     try {
-      const res = await api.initializeLot(noOfSlot);
-      setTotalSlots(res.data.total_slot);
-      setIsInitialized(true);
+      const res = await api.initializeLot(noOfSlot, name);
+      await refreshLayout();
       showToast(`Parking lot ready with ${res.data.total_slot} slots!`, 'success');
     } catch (err) {
       showToast(errMsg(err, 'Error initializing lot'), 'error');
     }
   };
 
-  const handleExpand = async (incrementSlot: number) => {
+  const handleRenameFloor = async (floorId: string, name: string) => {
     try {
-      const res = await api.expandLot(incrementSlot);
-      setTotalSlots(res.data.total_slot);
-      showToast(`Lot expanded — now ${res.data.total_slot} slots!`, 'success');
+      await api.renameFloor(floorId, name);
+      await refreshLayout();
+      showToast(`Floor renamed to "${name}"`, 'success');
     } catch (err) {
-      showToast(errMsg(err, 'Error expanding lot'), 'error');
+      showToast(errMsg(err, 'Error renaming floor'), 'error');
     }
   };
 
-  const handlePark = async (regNo: string, color: string) => {
+  const handleAddFloor = async (
+    name: string,
+    noOfSlot: number,
+    position: 'top' | 'bottom',
+  ) => {
     try {
-      const res = await api.parkCar(regNo, color);
-      await refreshStatus();
+      await api.addFloor(name, noOfSlot, position);
+      await refreshLayout();
+      showToast(`Floor "${name}" added with ${noOfSlot} slots!`, 'success');
+    } catch (err) {
+      showToast(errMsg(err, 'Error adding floor'), 'error');
+    }
+  };
+
+  const handleRemoveFloor = async (floorId: string, name: string) => {
+    if (!window.confirm(`Delete floor "${name}"? This removes all its slots.`)) return;
+    try {
+      await api.removeFloor(floorId);
+      await refreshLayout();
+      showToast(`Floor "${name}" deleted`, 'success');
+    } catch (err) {
+      showToast(errMsg(err, 'Error deleting floor'), 'error');
+    }
+  };
+
+  const handleAddSlotToFloor = async (floor: FloorView) => {
+    try {
+      await api.addSlotsToFloor(floor.id, 1);
+      await refreshLayout();
+      showToast(`Added a slot to "${floor.name}"`, 'success');
+    } catch (err) {
+      showToast(errMsg(err, 'Error adding slot'), 'error');
+    }
+  };
+
+  const handleRemoveSlotFromFloor = async (floor: FloorView) => {
+    // Remove the highest-numbered EMPTY slot on this floor.
+    const empty = floor.slots.filter((s) => !s.occupied).map((s) => s.slot_no);
+    if (empty.length === 0) {
+      showToast(`No empty slot to remove on "${floor.name}"`, 'error');
+      return;
+    }
+    const slotNo = Math.max(...empty);
+    try {
+      await api.removeSlot(floor.id, slotNo);
+      await refreshLayout();
+      showToast(`Removed slot #${slotNo} from "${floor.name}"`, 'success');
+    } catch (err) {
+      showToast(errMsg(err, 'Error removing slot'), 'error');
+    }
+  };
+
+  const handleDeleteSlot = async (floorId: string, slotNo: number) => {
+    const floor = floors.find((f) => f.id === floorId);
+    if (!window.confirm(`Delete slot #${slotNo} on ${floor?.name ?? 'this floor'}?`)) return;
+    try {
+      await api.removeSlot(floorId, slotNo);
+      await refreshLayout();
+      showToast(`Slot #${slotNo} deleted`, 'success');
+    } catch (err) {
+      showToast(errMsg(err, 'Error deleting slot'), 'error');
+    }
+  };
+
+  const handlePark = async (regNo: string, color: string, floorId: string) => {
+    try {
+      const res = await api.parkCar(regNo, color, floorId);
+      await refreshLayout();
       celebrate();
-      showToast(`${regNo} parked at slot #${res.data.allocated_slot_number}`, 'success');
+      showToast(
+        `${regNo} parked on ${res.data.floor_name}, slot #${res.data.allocated_slot_number}`,
+        'success',
+      );
     } catch (err) {
       showToast(errMsg(err, 'Error parking car'), 'error');
     }
   };
 
-  const handleClear = async (slotNumber?: number, regNo?: string) => {
+  const handleClear = async (floorId?: string, slotNumber?: number, regNo?: string) => {
     try {
-      const res = slotNumber
-        ? await api.clearBySlot(slotNumber)
-        : await api.clearByReg(regNo!);
-      await refreshStatus();
-      showToast(`Slot #${res.data.freed_slot_number} is now free!`, 'success');
+      const res =
+        slotNumber !== undefined && floorId
+          ? await api.clearBySlot(floorId, slotNumber)
+          : await api.clearByReg(regNo!);
+      await refreshLayout();
+      showToast(
+        `${res.data.floor_name} slot #${res.data.freed_slot_number} is now free!`,
+        'success',
+      );
     } catch (err) {
       showToast(errMsg(err, 'Error freeing slot'), 'error');
     }
   };
 
-  const availableCount = totalSlots - occupiedSlots.length;
+  const availableCount = totalSlots - occupiedCount;
 
   return (
     <div className="app">
@@ -181,7 +240,7 @@ export default function ParkingPage() {
                 exit={{ opacity: 0 }}
               >
                 <div className="stat occupied">
-                  <span className="stat-num"><AnimatedNumber value={occupiedSlots.length} /></span>
+                  <span className="stat-num"><AnimatedNumber value={occupiedCount} /></span>
                   <span className="stat-label">Occupied</span>
                 </div>
                 <div className="stat available">
@@ -240,14 +299,24 @@ export default function ParkingPage() {
                 <InitializeLot
                   isInitialized={isInitialized}
                   onInitialize={handleInitialize}
-                  onExpand={handleExpand}
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
-                <ParkCar isInitialized={isInitialized} onPark={handlePark} />
+                <FloorManager
+                  isInitialized={isInitialized}
+                  floors={floors}
+                  onAddFloor={handleAddFloor}
+                  onRemoveFloor={handleRemoveFloor}
+                  onRenameFloor={handleRenameFloor}
+                  onAddSlot={handleAddSlotToFloor}
+                  onRemoveSlot={handleRemoveSlotFromFloor}
+                />
               </motion.div>
               <motion.div variants={fadeUp}>
-                <ClearSlot isInitialized={isInitialized} onClear={handleClear} />
+                <ParkCar isInitialized={isInitialized} floors={floors} onPark={handlePark} />
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <ClearSlot isInitialized={isInitialized} floors={floors} onClear={handleClear} />
               </motion.div>
             </>
           ) : (
@@ -277,9 +346,10 @@ export default function ParkingPage() {
           transition={{ type: 'spring', stiffness: 90, damping: 18, delay: 0.2 }}
         >
           <ParkingGrid
-            totalSlots={totalSlots}
-            occupiedSlots={occupiedSlots}
+            floors={floors}
             isInitialized={isInitialized}
+            canManage={isLoggedIn}
+            onDeleteSlot={handleDeleteSlot}
           />
         </motion.div>
       </div>

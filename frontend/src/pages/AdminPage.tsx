@@ -28,6 +28,11 @@ export default function AdminPage() {
   const [newPass, setNewPass] = useState('');
   const [admins, setAdmins] = useState<AdminRow[]>([]);
 
+  // Set when the API client bounced us here after a 401 (expired/invalid token).
+  const sessionExpired =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('expired') === '1';
+
   const errOf = (err: unknown, fallback: string) => {
     const m = (err as { response?: { data?: { message?: string | string[] } } })?.response?.data
       ?.message;
@@ -297,6 +302,12 @@ export default function AdminPage() {
               ? 'Sign in to manage the parking system.'
               : 'No admin exists yet. Set up the first administrator — they become the Super Admin.'}
           </p>
+
+          {sessionExpired && (
+            <div className="inline-notice error" style={{ marginBottom: '1rem' }}>
+              Your session expired. Please sign in again.
+            </div>
+          )}
 
           <form onSubmit={handleAuthSubmit}>
             <label>Username</label>

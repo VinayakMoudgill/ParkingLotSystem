@@ -1,36 +1,40 @@
 import { useState } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   isInitialized: boolean;
-  onInitialize: (noOfSlot: number) => void;
-  onExpand: (incrementSlot: number) => void;
+  onInitialize: (noOfSlot: number, name: string) => void;
 }
 
-export default function InitializeLot({ isInitialized, onInitialize, onExpand }: Props) {
+export default function InitializeLot({ isInitialized, onInitialize }: Props) {
   const [slots, setSlots] = useState('');
-  const [expandSlots, setExpandSlots] = useState('');
+  const [name, setName] = useState('');
 
   const handleInit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!slots) return;
-    onInitialize(Number(slots));
+    onInitialize(Number(slots), name.trim() || 'Ground Floor');
     setSlots('');
-  };
-
-  const handleExpand = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!expandSlots) return;
-    onExpand(Number(expandSlots));
-    setExpandSlots('');
+    setName('');
   };
 
   return (
     <div className="card">
-      <h2><SlidersHorizontal size={15} /> Parking Lot Setup</h2>
+      <h2><SlidersHorizontal size={15} /> Create Parking Lot</h2>
       {!isInitialized ? (
         <form onSubmit={handleInit}>
-          <label>Number of Slots</label>
+          <p className="field-hint" style={{ marginTop: 0 }}>
+            Start by creating your first floor. You can add more floors and slots
+            anytime after this.
+          </p>
+          <label>Floor Name</label>
+          <input
+            type="text"
+            placeholder="e.g. Ground Floor, B1, Level 1"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <label>How many parking slots?</label>
           <input
             type="number"
             min="1"
@@ -38,20 +42,14 @@ export default function InitializeLot({ isInitialized, onInitialize, onExpand }:
             value={slots}
             onChange={(e) => setSlots(e.target.value)}
           />
-          <button type="submit">Initialize Lot</button>
+          <button type="submit">Create Parking Lot</button>
         </form>
       ) : (
-        <form onSubmit={handleExpand}>
-          <label>Add More Slots</label>
-          <input
-            type="number"
-            min="1"
-            placeholder="e.g. 5"
-            value={expandSlots}
-            onChange={(e) => setExpandSlots(e.target.value)}
-          />
-          <button type="submit" className="btn-secondary">Expand Lot</button>
-        </form>
+        <p className="restricted-note" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <CheckCircle2 size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+          Your parking lot is ready. Use the <strong>Floors</strong> panel below to add
+          upper floors or basements, rename a floor, or change its number of slots.
+        </p>
       )}
     </div>
   );
